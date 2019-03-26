@@ -1,24 +1,21 @@
 package main
 
 import (
-	"awesomeProject/store"
-	"github.com/gorilla/handlers"
+	"github.com/go-chi/chi"
 	"log"
 	"net/http"
-	"os"
 )
 
 func main() {
-	port := os.Getenv("PORT")
+	router := CreateRouter()
 
-	if port == "" {
-		log.Fatal("$PORT must be set")
+	walkFunc := func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
+		log.Printf("%s %s\n", method, route) // Walk and print out all routes
+		return nil
+	}
+	if err := chi.Walk(router, walkFunc); err != nil {
+		log.Panicf("Logging err: %s\n", err.Error()) // panic if there is an error
 	}
 
-	router := store.NewRouter()
-
-	allowedOrigins := handlers.AllowedOrigins([]string{"*"})
-	allowedMethods := handlers.AllowedMethods([]string{"GET", "POST", "DELETE", "PUT"})
-
-	log.Fatal(http.ListenAndServe(":"+port, handlers.CORS(allowedOrigins, allowedMethods)(router)))
+	log.Fatal(http.ListenAndServe(":8000", router))
 }

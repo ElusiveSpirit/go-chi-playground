@@ -96,12 +96,18 @@ func (r Repository) GetProductsByString(query string) Products {
 // AddProduct adds a Product in the DB
 func (r Repository) AddProduct(product Product) bool {
 	session, err := mgo.Dial(SERVER)
+
+	if err != nil {
+		fmt.Println("Failed to establish connection to Mongo server:", err)
+	}
+
 	defer session.Close()
+	c := session.DB(DBNAME).C(COLLECTION)
 
 	productId += 1
 	product.ID = productId
-	session.DB(DBNAME).C(COLLECTION).Insert(product)
-	if err != nil {
+
+	if err := c.Insert(product); err != nil {
 		log.Fatal(err)
 		return false
 	}
