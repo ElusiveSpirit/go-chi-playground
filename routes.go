@@ -30,8 +30,8 @@ var modules = ModuleRoutes{
 }
 
 func CreateRouter() *chi.Mux {
-	router := chi.NewRouter()
-	router.Use(
+	r := chi.NewRouter()
+	r.Use(
 		render.SetContentType(render.ContentTypeJSON), // Set content-Type headers as application/json
 		middleware.RequestID,
 		middleware.RealIP,
@@ -40,11 +40,11 @@ func CreateRouter() *chi.Mux {
 		middleware.Timeout(60*time.Second),
 	)
 
-	router.Route("/api/v1", func(r chi.Router) {
+	r.Route("/api/v1", func(r chi.Router) {
 		for _, module := range modules {
 			r.Mount(module.Pattern, module.RouterFunc())
 		}
 	})
 
-	return router
+	return r
 }

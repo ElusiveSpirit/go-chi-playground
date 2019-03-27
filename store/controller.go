@@ -1,7 +1,10 @@
 package store
 
 import (
+	"awesomeProject/types"
+	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"io"
@@ -14,6 +17,29 @@ import (
 
 type Controller struct {
 	Repository Repository
+}
+
+func (c *Controller) ProductCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var product Product
+		var err error
+
+		if id := chi.URLParam(r, "productID"); id != "" {
+			fmt.Println("ID = ", id)
+			productId, _ := strconv.Atoi(id)
+			product = c.Repository.GetProductById(productId)
+		} else {
+			render.Render(w, r, types.ErrNotFound)
+			return
+		}
+		if err != nil {
+			render.Render(w, r, types.ErrNotFound)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), "product", product)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 // Index GET /
@@ -78,9 +104,8 @@ func (c *Controller) SearchProduct(w http.ResponseWriter, r *http.Request) {
 
 // UpdateProduct PUT /
 func (c *Controller) UpdateProduct(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	product := r.Context().Value("product").(Product)
 
-	var product Product
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, 1048576)) // read the body of the request
 	if err != nil {
 		log.Fatalln("Error UpdateProduct", err)
@@ -102,9 +127,6 @@ func (c *Controller) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	productId, err := strconv.Atoi(id)
-	product.ID = productId
-	log.Println(product.ID)
 	success := c.Repository.UpdateProduct(product) // updates the product in the DB
 
 	if !success {
@@ -112,37 +134,21 @@ func (c *Controller) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.WriteHeader(http.StatusOK)
-	return
+	render.JSON(w, r, product)
 }
 
 // GetProduct GET - Gets a single product by ID /
 func (c *Controller) GetProduct(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-
-	log.Println(id)
-	productid, err := strconv.Atoi(id)
-	if err != nil {
-		log.Fatalln("Error GetProduct", err)
-	}
-
-	product := c.Repository.GetProductById(productid)
+	product := r.Context().Value("product").(Product)
 
 	render.JSON(w, r, product)
 }
 
 // DeleteProduct DELETE /
 func (c *Controller) DeleteProduct(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	log.Println(id)
-	productid, err := strconv.Atoi(id)
-	if err != nil {
-		log.Fatalln("Error GetProduct", err)
-	}
+	product := r.Context().Value("product").(Product)
 
-	if err := c.Repository.DeleteProduct(productid); err != "" { // delete a product by id
+	if err := c.Repository.DeleteProduct(product.ID); err != "" { // delete a product by id
 		log.Println(err)
 		if strings.Contains(err, "404") {
 			w.WriteHeader(http.StatusNotFound)

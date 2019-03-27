@@ -2,19 +2,19 @@ package auth
 
 import (
 	"awesomeProject/types"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/context"
 	"log"
 	"net/http"
 	"strings"
 )
 
 /* Middleware handler to handle all requests for authentication */
-func AuthenticationMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		authorizationHeader := req.Header.Get("authorization")
+func AuthenticationMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorizationHeader := r.Header.Get("authorization")
 		if authorizationHeader != "" {
 			bearerToken := strings.Split(authorizationHeader, " ")
 			if len(bearerToken) == 2 {
@@ -30,8 +30,8 @@ func AuthenticationMiddleware(next http.HandlerFunc) http.HandlerFunc {
 				}
 				if token.Valid {
 					log.Println("TOKEN WAS VALID")
-					context.Set(req, "decoded", token.Claims)
-					next(w, req)
+					ctx := context.WithValue(r.Context(), "decoded", token.Claims)
+					next.ServeHTTP(w, r.WithContext(ctx))
 				} else {
 					json.NewEncoder(w).Encode(types.Exception{Message: "Invalid authorization token"})
 				}
