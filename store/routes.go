@@ -1,9 +1,8 @@
 package store
 
 import (
+	"awesomeProject/auth"
 	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
-	"github.com/go-chi/render"
 	"net/http"
 )
 
@@ -20,12 +19,6 @@ type Routes []Route
 
 var routes = Routes{
 	Route{
-		"Authentication",
-		"POST",
-		"/get-token",
-		controller.GetToken,
-	},
-	Route{
 		"Index",
 		"GET",
 		"/products",
@@ -35,13 +28,13 @@ var routes = Routes{
 		"AddProduct",
 		"POST",
 		"/products",
-		AuthenticationMiddleware(controller.AddProduct),
+		auth.AuthenticationMiddleware(controller.AddProduct),
 	},
 	Route{
 		"UpdateProduct",
 		"PUT",
 		"/products/{id}",
-		AuthenticationMiddleware(controller.UpdateProduct),
+		auth.AuthenticationMiddleware(controller.UpdateProduct),
 	},
 	// Get Product by {id}
 	Route{
@@ -55,7 +48,7 @@ var routes = Routes{
 		"DeleteProduct",
 		"DELETE",
 		"/products/{id}",
-		AuthenticationMiddleware(controller.DeleteProduct),
+		auth.AuthenticationMiddleware(controller.DeleteProduct),
 	},
 	// Search product with string
 	Route{
@@ -67,11 +60,6 @@ var routes = Routes{
 
 func CreateRouter() *chi.Mux {
 	router := chi.NewRouter()
-	router.Use(
-		render.SetContentType(render.ContentTypeJSON), // Set content-Type headers as application/json
-		middleware.Logger,    // Log API request calls
-		middleware.Recoverer, // Recover from panics without crashing server
-	)
 
 	for _, route := range routes {
 		router.Method(route.Method, route.Pattern, route.HandlerFunc)

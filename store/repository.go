@@ -8,7 +8,6 @@ import (
 	"strings"
 )
 
-//Repository ...
 type Repository struct{}
 
 // SERVER the DB server
